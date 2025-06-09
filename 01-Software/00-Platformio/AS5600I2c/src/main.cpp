@@ -1,48 +1,12 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <AS5600.h>
 
-void runI2cScan()
-{
-    byte error, address;
-    int nDevices;
+//  Uncomment the line according to your sensor type
+//AS5600L as5600;   //  use default Wire
+AS5600 as5600;   //  use default Wire
 
-    Serial.println("Scanning...");
-
-    nDevices = 0;
-    for(address = 1; address < 127; address++ )
-    {
-        // The i2c_scanner uses the return value of
-        // the Write.endTransmisstion to see if
-        // a device did acknowledge to the address.
-        Wire.beginTransmission(address);
-        error = Wire.endTransmission();
-
-        if (error == 0)
-        {
-            Serial.print("I2C device found at address 0x");
-            if (address<16)
-            Serial.print("0");
-            Serial.print(address,HEX);
-            Serial.println(" !");
-
-            nDevices++;
-        }
-        else if (error==4)
-        {
-            Serial.print("Unknow error at address 0x");
-            if (address<16)
-            Serial.print("0");
-            Serial.println(address,HEX);
-        }
-    }
-    if (nDevices == 0)
-        Serial.println("No I2C devices found\n");
-    else
-        Serial.println("done\n");
-
-}
-
-int i = 0;
+uint32_t start, stop;
 void setup() {
   // Setup i2c Wire
   Wire.setSCL(PB8);
@@ -52,12 +16,31 @@ void setup() {
 
   // Setup Serial Interface
   Serial.begin(9600);
-  delay(5000);
-  Serial.println("Starting Application, end of setup");
+  delay(1000);
+
+  Wire.begin();
+  Serial.println(as5600.getAddress());
+
+  //  as5600.setAddress(0x40);  //  AS5600L only
+
+  int b = as5600.isConnected();
+  Serial.print("Connect: ");
+  Serial.println(b);
 }
 
-void loop() {
-  runI2cScan();
-  delay(5000); // wait 5 seconds for next scan
-}
+void loop()
+{
+  static uint32_t lastTime = 0;
 
+  if (millis() - lastTime >= 100)
+  {
+    lastTime = millis();
+    as5600.readAngle();
+    Serial.print(as5600.getCumulativePosition(false));
+    Serial.print("\t");
+    Serial.println(as5600.getAngularSpeed(AS5600_MODE_DEGREES, false));
+  }
+  else{
+    as5600.getCumulativePosition(false);
+  }
+}
