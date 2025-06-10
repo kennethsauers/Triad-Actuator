@@ -26,21 +26,37 @@ void setup() {
   int b = as5600.isConnected();
   Serial.print("Connect: ");
   Serial.println(b);
+  as5600.setSlowFilter(0);
+  as5600.setFastFilter(4);
 }
+static uint32_t lastTime = 0;
 
-void loop()
-{
-  static uint32_t lastTime = 0;
 
-  if (millis() - lastTime >= 100)
-  {
-    lastTime = millis();
-    as5600.readAngle();
-    Serial.print(as5600.getCumulativePosition(false));
+void loop() {
+  const int sampleCount = 100;
+  uint16_t angleData[sampleCount];
+
+  // Collect 100 samples
+  for (int i = 0; i < sampleCount; i++) {
+    angleData[i] = as5600.rawAngle();
+  }
+
+  // Print in rows of 10
+  for (int i = 0; i < sampleCount; i++) {
+    Serial.print(angleData[i]);
     Serial.print("\t");
-    Serial.println(as5600.getAngularSpeed(AS5600_MODE_DEGREES, false));
+
+    // Print newline after every 10 values
+    if ((i + 1) % 10 == 0) {
+      Serial.println();
+    }
   }
-  else{
-    as5600.getCumulativePosition(false);
+
+  // Optional: "clear" the array by setting to 0
+  for (int i = 0; i < sampleCount; i++) {
+    angleData[i] = 0;
   }
+
+  Serial.println("\nWaiting 5 seconds...\n");
+  delay(5000);
 }
